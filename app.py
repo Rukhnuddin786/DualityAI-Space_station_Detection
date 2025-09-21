@@ -337,7 +337,8 @@ with tab2:
 @st.cache_resource
 def download_model():
     """Download the model file from Google Drive if it doesn't exist"""
-    MODEL_FILE_ID = "1Ske7AZgMLtyWvv076iqtlCBcc9Kwmjfe"
+    # Google Drive direct download link (generated from the shareable link)
+    MODEL_URL = "https://drive.google.com/uc?export=download&id=1Ske7AZgMLtyWvv076iqtlCBcc9Kwmjfe"
     MODEL_FILENAME = "best.pt"
     
     # Check if model already exists
@@ -350,21 +351,39 @@ def download_model():
     status_text.text("Downloading model... (This may take a few minutes)")
     
     try:
-        # Create a progress bar for the download
-        def progress_hook(current, total, width=80):
-            progress = current / total
-            progress_bar.progress(progress)
+        # Create a session to handle cookies
+        session = requests.Session()
         
-        # Download the file
-        url = f'https://drive.google.com/uc?id={MODEL_FILE_ID}'
-        output = MODEL_FILENAME
+        # First request to get the confirmation token
+        response = session.get(MODEL_URL, stream=True)
+        token = ""
+        for key, value in response.cookies.items():
+            if key.startswith('download_warning'):
+                token = value
+                break
         
-        # Use gdown to handle the download
-        gdown.download(url, output, quiet=False, use_cookies=False)
+        # Second request with the token
+        if token:
+            params = {'id': '1Ske7AZgMLtyWvv076iqtlCBcc9Kwmjfe', 'confirm': token}
+            response = session.get('https://drive.google.com/uc', params=params, stream=True)
+        
+        # Get the file size for progress tracking
+        total_size = int(response.headers.get('content-length', 0))
+        block_size = 1024 * 1024  # 1MB
+        downloaded_size = 0
+        
+        # Download the file with progress
+        with open(MODEL_FILENAME, 'wb') as f:
+            for data in response.iter_content(block_size):
+                downloaded_size += len(data)
+                f.write(data)
+                # Update progress
+                progress = min(downloaded_size / total_size, 1.0)
+                progress_bar.progress(progress)
         
         status_text.success("Model downloaded successfully!")
         progress_bar.empty()
-        return output
+        return MODEL_FILENAME
         
     except Exception as e:
         status_text.error(f"Error downloading model: {str(e)}")
