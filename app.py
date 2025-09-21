@@ -7,6 +7,8 @@ from pathlib import Path
 import time
 import cv2
 import requests
+import gdown
+from tqdm import tqdm
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
@@ -331,27 +333,63 @@ with tab2:
 
 # Removed duplicate code block that was causing issues
 
+# --- MODEL DOWNLOAD FUNCTION ---
+@st.cache_resource
+def download_model():
+    """Download the model file from Google Drive if it doesn't exist"""
+    MODEL_FILE_ID = "1Ske7AZgMLtyWvv076iqtlCBcc9Kwmjfe"
+    MODEL_FILENAME = "best.pt"
+    
+    # Check if model already exists
+    if os.path.exists(MODEL_FILENAME):
+        return MODEL_FILENAME
+    
+    # Show download progress
+    progress_bar = st.sidebar.progress(0)
+    status_text = st.sidebar.empty()
+    status_text.text("Downloading model... (This may take a few minutes)")
+    
+    try:
+        # Create a progress bar for the download
+        def progress_hook(current, total, width=80):
+            progress = current / total
+            progress_bar.progress(progress)
+        
+        # Download the file
+        url = f'https://drive.google.com/uc?id={MODEL_FILE_ID}'
+        output = MODEL_FILENAME
+        
+        # Use gdown to handle the download
+        gdown.download(url, output, quiet=False, use_cookies=False)
+        
+        status_text.success("Model downloaded successfully!")
+        progress_bar.empty()
+        return output
+        
+    except Exception as e:
+        status_text.error(f"Error downloading model: {str(e)}")
+        progress_bar.empty()
+        return None
+
 # --- MODEL LOADING ---
 st.sidebar.header("Model Configuration")
 
-# Handle model file with spaces in the name
-MODEL_FILENAME = "best.pt"
-
-# Check if the model with space exists and rename it
-if os.path.exists("best (1).pt") and not os.path.exists(MODEL_FILENAME):
-    os.rename("best (1).pt", MODEL_FILENAME)
+# Download and load the model
+MODEL_FILENAME = download_model()
 
 # Load the YOLO model
 model = None
-if os.path.exists(MODEL_FILENAME):
+if MODEL_FILENAME and os.path.exists(MODEL_FILENAME):
     try:
-        model = YOLO(MODEL_FILENAME)
-        st.session_state.model_loaded = True
+        with st.spinner('Loading model...'):
+            model = YOLO(MODEL_FILENAME)
+            st.session_state.model_loaded = True
+            st.sidebar.success("Model loaded successfully!")
     except Exception as e:
         st.sidebar.error(f"Error loading model: {str(e)}")
         st.session_state.model_loaded = False
 else:
-    st.sidebar.error(f"Model file '{MODEL_FILENAME}' not found. Please upload the model file.")
+    st.sidebar.error("Failed to download or find the model file.")
     st.session_state.model_loaded = False
 
 # --- TRAINING RESULTS SECTION ---
