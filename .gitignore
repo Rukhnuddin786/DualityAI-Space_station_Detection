@@ -51,14 +51,14 @@ logs/
 *.local
 
 # Model files
-*.pt
 *.pth
 # *.h5
 # *.onnx
 # *.engine
 
-# Specific model file
+# Specific model files to ignore
 best (1).pt
+!best.pt  # Track this specific file
 
 # Large data files
 data/
