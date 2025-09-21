@@ -6,6 +6,7 @@ import pandas as pd
 from pathlib import Path
 import time
 import cv2
+import requests
 
 # --- PAGE CONFIGURATION ---
 st.set_page_config(
@@ -57,10 +58,28 @@ st.markdown("""
 @st.cache_resource
 def load_model(model_path):
     """Loads the YOLOv8 model from the specified path."""
-    if not os.path.exists(model_path):
-        st.error(f"Model file not found at {model_path}. Please check the path.", icon="🚨")
-        return None
-    return YOLO(model_path)
+    # Model configuration
+    MODEL_FILENAME = "best.pt"
+
+    # Handle model file with spaces in the name
+    if os.path.exists("best (1).pt") and not os.path.exists(MODEL_FILENAME):
+        # Rename the file to avoid spaces
+        os.rename("best (1).pt", MODEL_FILENAME)
+
+    # Load the YOLO model
+    model = None
+    if os.path.exists(MODEL_FILENAME):
+        try:
+            model = YOLO(MODEL_FILENAME)
+            st.session_state.model_loaded = True
+        except Exception as e:
+            st.error(f"Error loading model: {str(e)}")
+            st.session_state.model_loaded = False
+    else:
+        st.error(f"Model file '{MODEL_FILENAME}' not found. Please upload the model file.")
+        st.session_state.model_loaded = False
+
+    return model
 
 def find_latest_run_dir(base_dir="runs/detect"):
     """Finds the latest training run directory."""
@@ -311,6 +330,29 @@ with tab2:
         st.info("Check the 'Start Camera' checkbox to begin real-time detection")
 
 # Removed duplicate code block that was causing issues
+
+# --- MODEL LOADING ---
+st.sidebar.header("Model Configuration")
+
+# Handle model file with spaces in the name
+MODEL_FILENAME = "best.pt"
+
+# Check if the model with space exists and rename it
+if os.path.exists("best (1).pt") and not os.path.exists(MODEL_FILENAME):
+    os.rename("best (1).pt", MODEL_FILENAME)
+
+# Load the YOLO model
+model = None
+if os.path.exists(MODEL_FILENAME):
+    try:
+        model = YOLO(MODEL_FILENAME)
+        st.session_state.model_loaded = True
+    except Exception as e:
+        st.sidebar.error(f"Error loading model: {str(e)}")
+        st.session_state.model_loaded = False
+else:
+    st.sidebar.error(f"Model file '{MODEL_FILENAME}' not found. Please upload the model file.")
+    st.session_state.model_loaded = False
 
 # --- TRAINING RESULTS SECTION ---
 st.markdown("---")
