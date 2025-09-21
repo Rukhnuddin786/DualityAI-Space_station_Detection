@@ -50,12 +50,15 @@ logs/
 # Local development
 *.local
 
-# Model files (uncomment if you're not tracking model files in Git)
-# *.pt
-# *.pth
+# Model files
+*.pt
+*.pth
 # *.h5
 # *.onnx
 # *.engine
+
+# Specific model file
+best (1).pt
 
 # Large data files
 data/
