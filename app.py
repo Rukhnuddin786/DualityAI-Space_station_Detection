@@ -209,15 +209,29 @@ with tab2:
     # Real-time camera feed with detection
     st.subheader("Real-time Camera Detection")
     
-    # Add a checkbox to start/stop the camera
-    run_camera = st.checkbox('Start Camera', key='run_camera')
+    # Check if running on Streamlit Cloud
+    IS_STREAMLIT_CLOUD = os.environ.get('IS_STREAMLIT_CLOUD') == 'true'
     
-    if run_camera:
-        # Use OpenCV for camera capture
-        import cv2
+    if IS_STREAMLIT_CLOUD:
+        st.warning("⚠️ Camera functionality is not available in Streamlit Cloud deployment.")
+        st.info("To use camera features, please run the app locally on your machine.")
+        st.code("pip install streamlit\nstreamlit run app.py", language="bash")
+    else:
+        # Add a checkbox to start/stop the camera
+        run_camera = st.checkbox('Start Camera', key='run_camera')
         
-        # Initialize the camera
-        cap = cv2.VideoCapture(0)
+        if run_camera:
+            # Use OpenCV for camera capture
+            import cv2
+            
+            # Initialize the camera
+            try:
+                cap = cv2.VideoCapture(0)
+                if not cap.isOpened():
+                    raise Exception("Could not access the camera. Please ensure it's connected and not in use by another application.")
+            except Exception as e:
+                st.error(f"Error accessing camera: {str(e)}")
+                st.stop()
         
         # Create placeholders
         camera_placeholder = st.empty()
