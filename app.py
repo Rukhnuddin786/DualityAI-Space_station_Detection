@@ -60,13 +60,8 @@ st.markdown("""
 @st.cache_resource
 def load_model(model_path):
     """Loads the YOLOv8 model from the specified path."""
-    # Model configuration
-    MODEL_FILENAME = "best.pt"
-
-    # Handle model file with spaces in the name
-    if os.path.exists("best (1).pt") and not os.path.exists(MODEL_FILENAME):
-        # Rename the file to avoid spaces
-        os.rename("best (1).pt", MODEL_FILENAME)
+    # Model configuration - using the file with spaces in the name
+    MODEL_FILENAME = "best (1).pt"
 
     # Load the YOLO model
     model = None
