@@ -60,8 +60,13 @@ st.markdown("""
 @st.cache_resource
 def load_model(model_path):
     """Loads the YOLOv8 model from the specified path."""
-    # Model configuration - using the file with spaces in the name
-    MODEL_FILENAME = "best (1).pt"
+    # Model configuration
+    MODEL_FILENAME = "best.pt"
+
+    # Handle model file with spaces in the name
+    if os.path.exists("best (1).pt") and not os.path.exists(MODEL_FILENAME):
+        # Rename the file to avoid spaces
+        os.rename("best (1).pt", MODEL_FILENAME)
 
     # Load the YOLO model
     model = None
@@ -388,23 +393,41 @@ def download_model():
 # --- MODEL LOADING ---
 st.sidebar.header("Model Configuration")
 
-# Download and load the model
-MODEL_FILENAME = download_model()
-
-# Load the YOLO model
+# Try to load the model with better error handling
 model = None
-if MODEL_FILENAME and os.path.exists(MODEL_FILENAME):
-    try:
-        with st.spinner('Loading model...'):
-            model = YOLO(MODEL_FILENAME)
+MODEL_FILENAME = "best.pt"
+
+try:
+    # First check if file exists
+    if not os.path.exists(MODEL_FILENAME):
+        st.sidebar.warning(f"Model file '{MODEL_FILENAME}' not found. Attempting to download...")
+        # Try to download the model
+        MODEL_FILENAME = download_model()
+        if not MODEL_FILENAME or not os.path.exists(MODEL_FILENAME):
+            st.sidebar.error(f"Failed to download the model file.")
+            st.sidebar.info("Please ensure you have a stable internet connection and try again.")
+            st.stop()
+    
+    # Try to load the model
+    with st.spinner('Loading model...'):
+        model = YOLO(MODEL_FILENAME)
+        # Verify the model loaded correctly by checking its attributes
+        if hasattr(model, 'names') and model.names:
             st.session_state.model_loaded = True
             st.sidebar.success("Model loaded successfully!")
-    except Exception as e:
-        st.sidebar.error(f"Error loading model: {str(e)}")
-        st.session_state.model_loaded = False
-else:
-    st.sidebar.error("Failed to download or find the model file.")
+        else:
+            raise Exception("Model loaded but appears to be invalid")
+            
+except Exception as e:
+    st.sidebar.error(f"Error loading model: {str(e)}")
+    st.sidebar.error("""
+    The model file appears to be corrupted or incompatible. Please:
+    1. Delete any existing 'best.pt' file
+    2. Ensure you have a stable internet connection
+    3. Refresh the page to try downloading again
+    """)
     st.session_state.model_loaded = False
+    st.stop()
 
 # --- TRAINING RESULTS SECTION ---
 st.markdown("---")

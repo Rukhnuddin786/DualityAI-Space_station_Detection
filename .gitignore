@@ -51,14 +51,14 @@ logs/
 *.local
 
 # Model files
-*.pt
 *.pth
 # *.h5
 # *.onnx
 # *.engine
 
-# Track the specific model file with space in name
-!"best (1).pt"
+# Specific model files to ignore
+best (1).pt
+!best.pt  # Track this specific file
 
 # Large data files
 data/
